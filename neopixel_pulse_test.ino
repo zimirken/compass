@@ -19,8 +19,7 @@ Adafruit_NeoPixel strip(LED_COUNT, LED_PIN, NEO_GRB + NEO_KHZ800);
 //   NEO_RGBW    Pixels are wired for RGBW bitstream (NeoPixel RGBW products)
 
 
-static int rise = 2;
-static int fall = -1;
+
 static int pulseInterval = 100;
 
 
@@ -37,7 +36,7 @@ void loop() {
   // put your main code here, to run repeatedly:
   
   for(int x=0;x<strip.numPixels();x++){
-    pulseWave(x, random(0,3), random(0,3), random(0,3), 254, 1);
+    pulseWave(x, strip.gamma32(strip.ColorHSV(random(0,65535))), 2, -1, 1);
     delay(500);
   }
   //pulseWave(random(0,strip.numPixels()-1), random(0,3), random(0,3), random(0,3), 255, 10);
@@ -46,10 +45,20 @@ void loop() {
 }
 
 
-void pulseWave(int startPixel, int redRise, int greenRise, int blueRise, int colorMax, int wait) {
+void pulseWave(int startPixel, uint32_t color, int rise, int fall, int wait) {
   //set up variables
-  colorMax = constrain(colorMax,5,254);
   startPixel = constrain(startPixel,0,strip.numPixels()-1);
+  int colorMax = max(Red(color), Green(color));
+  colorMax = max(colorMax, Blue(color));
+  float redMult = (float)Red(color)/colorMax;
+  float greenMult = (float)Green(color)/colorMax;
+  float blueMult = (float)Blue(color)/colorMax;
+  Serial.print("refMult: ");
+  Serial.print(redMult,7);
+  Serial.print(", greenMult: ");
+  Serial.print(greenMult,7);
+  Serial.print(", blueMult: ");
+  Serial.println(blueMult,7);
   int pixelMatrix[strip.numPixels()] ;
   int pixelMatrixDirection[strip.numPixels()] ;
     for(int i=0;i<strip.numPixels();i++){ //clear variables after initialization
@@ -57,23 +66,21 @@ void pulseWave(int startPixel, int redRise, int greenRise, int blueRise, int col
       pixelMatrixDirection[i]=0;
     }
   pixelMatrixDirection[startPixel] = rise;
-  strip.setPixelColor(startPixel,redRise,greenRise,blueRise);
-  strip.show();
   int stopPixel = (startPixel + strip.numPixels()/2)%strip.numPixels();//find opposite side
   int stripAdvance = 0;
   int stripAdvanceOld = 0;
-  
 
   while((pixelMatrix[stopPixel]>0 || pixelMatrixDirection[stopPixel]>-1)) {            //this loop actually does the pulse
     
-      for(int a=0;a<strip.numPixels();a++){           //change the pixel brightness based on direction
+      for(int a=0;a<strip.numPixels();a++){           //increase or decrease the pixel brightness based on direction
           pixelMatrix[a] = pixelMatrix[a]+pixelMatrixDirection[a];
           if((pixelMatrixDirection[a]>0)&&pixelMatrix[a]>colorMax){   //check if it's time to advance
             pixelMatrixDirection[a] = fall;
             stripAdvance++;
           }
         pixelMatrix[a]=constrain(pixelMatrix[a],0,255);
-        strip.setPixelColor(a, constrain(redRise*pixelMatrix[a],0,255), constrain(greenRise*pixelMatrix[a],0,255), constrain(blueRise*pixelMatrix[a],0,255));
+        //the multiplier is an easy way to make the color stay consistent while the brightness changes.
+        strip.setPixelColor(a, pixelMatrix[a]*redMult, pixelMatrix[a]*greenMult, pixelMatrix[a]*blueMult);
       }
 
       
