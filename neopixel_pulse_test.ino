@@ -45,27 +45,26 @@ void loop() {
 }
 
 
-void pulseWave(int startPixel, uint32_t color, int rise, int fall, int wait) {
+void pulseWave(int startPixel, //pixel the wave starts at
+uint32_t color, //color of the wave
+int rise, //rise amount per iteration
+int fall, //fall amount per iteration, ratio of rise/fall determines how long the "tail" is on the wave
+int wait) //wait time in between iterations
+{
   //set up variables
   startPixel = constrain(startPixel,0,strip.numPixels()-1);
-  int colorMax = max(Red(color), Green(color));
+  int colorMax = max(Red(color), Green(color));//figure out the max brightness of any color
   colorMax = max(colorMax, Blue(color));
-  float redMult = (float)Red(color)/colorMax;
+  float redMult = (float)Red(color)/colorMax;//these multipliers allow color to stay consistent as brightness changes
   float greenMult = (float)Green(color)/colorMax;
   float blueMult = (float)Blue(color)/colorMax;
-  Serial.print("refMult: ");
-  Serial.print(redMult,7);
-  Serial.print(", greenMult: ");
-  Serial.print(greenMult,7);
-  Serial.print(", blueMult: ");
-  Serial.println(blueMult,7);
-  int pixelMatrix[strip.numPixels()] ;
-  int pixelMatrixDirection[strip.numPixels()] ;
+  int pixelMatrix[strip.numPixels()] ;//brightness of a pixel
+  int pixelMatrixDirection[strip.numPixels()] ;//change in brightness of a pixel
     for(int i=0;i<strip.numPixels();i++){ //clear variables after initialization
       pixelMatrix[i] = 0;
       pixelMatrixDirection[i]=0;
     }
-  pixelMatrixDirection[startPixel] = rise;
+  pixelMatrixDirection[startPixel] = rise;//gotta start the process
   int stopPixel = (startPixel + strip.numPixels()/2)%strip.numPixels();//find opposite side
   int stripAdvance = 0;
   int stripAdvanceOld = 0;
@@ -78,7 +77,7 @@ void pulseWave(int startPixel, uint32_t color, int rise, int fall, int wait) {
             pixelMatrixDirection[a] = fall;
             stripAdvance++;
           }
-        pixelMatrix[a]=constrain(pixelMatrix[a],0,255);
+        pixelMatrix[a]=constrain(pixelMatrix[a],0,255);//this keeps any weirdness out of the pixels
         //the multiplier is an easy way to make the color stay consistent while the brightness changes.
         strip.setPixelColor(a, pixelMatrix[a]*redMult, pixelMatrix[a]*greenMult, pixelMatrix[a]*blueMult);
       }
@@ -86,8 +85,8 @@ void pulseWave(int startPixel, uint32_t color, int rise, int fall, int wait) {
       
       if(stripAdvance > stripAdvanceOld) {                  //advance the wave
         //Serial.print("Advance: ");
-        for(int u=0;u<strip.numPixels();u++){
-          if(pixelMatrixDirection[u]==0) {
+        for(int u=0;u<strip.numPixels();u++){//iterate through the pixels
+          if(pixelMatrixDirection[u]==0) {//if pixel is untouched
 
              if(pixelMatrixDirection[(u+1)%(strip.numPixels())]<0){
               pixelMatrixDirection[u]=rise;
